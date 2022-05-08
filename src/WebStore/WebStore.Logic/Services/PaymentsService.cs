@@ -1,6 +1,8 @@
-﻿using WebStore.Database.Models;
+﻿using Microsoft.Extensions.Configuration;
+using WebStore.Database.Models;
 using WebStore.Database.Models.Enums;
 using WebStore.Logic.Interfaces;
+using WebStore.Logic.Models.Configuration;
 using WebStore.Logic.Models.Payment;
 using Yandex.Checkout.V3;
 using Payment = WebStore.Database.Models.Entities.Payment;
@@ -12,10 +14,12 @@ public class PaymentsService : IPaymentsService
     private readonly AsyncClient _client;
     private readonly DatabaseContext _databaseContext;
 
-    public PaymentsService(DatabaseContext databaseContext)
+    public PaymentsService(DatabaseContext databaseContext, IConfiguration configuration)
     {
         _databaseContext = databaseContext;
-        _client = new Client("", "").MakeAsync();
+        var yookassaConfig = configuration.GetSection(nameof(YookassaConfig))
+            .Get<YookassaConfig>();
+        _client = new Client(yookassaConfig.ShopId, yookassaConfig.SecretKey).MakeAsync();
     }
 
     public async Task<(string, Guid)> CreatePaidOrderUrl(PaymentModel paymentModel)
