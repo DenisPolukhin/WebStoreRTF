@@ -14,18 +14,19 @@ namespace WebStore.Logic.Services;
 
 public class ProductsService : IProductsService
 {
-    private readonly DatabaseContext _databaseContext;
+    private readonly IDbContextFactory<DatabaseContext> _dbContextFactory;
     private readonly IMapper _mapper;
 
-    public ProductsService(DatabaseContext databaseContext, IMapper mapper)
+    public ProductsService(IDbContextFactory<DatabaseContext> dbContextFactory, IMapper mapper)
     {
-        _databaseContext = databaseContext;
+        _dbContextFactory = dbContextFactory;
         _mapper = mapper;
     }
 
     public async Task<IPaginatedList<ProductModel>> GetCategoryProductsAsync(Guid categoryId, PageModel pageModel)
     {
-        var products = await _databaseContext.Products
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var products = await databaseContext.Products
             .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.Manufacturer)
@@ -38,7 +39,8 @@ public class ProductsService : IProductsService
 
     public async Task<ProductModel> GetDetailsAsync(Guid id)
     {
-        var product = await _databaseContext.Products
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var product = await databaseContext.Products
             .Include(x => x.Category)
             .Include(x => x.Manufacturer)
             .FirstOrDefaultAsync(x => x.Id == id);
@@ -52,7 +54,8 @@ public class ProductsService : IProductsService
 
     public async Task<IEnumerable<CategoryModel>> GetCategoriesAsync()
     {
-        var categories = await _databaseContext.Categories
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var categories = await databaseContext.Categories
             .Include(x => x.ChildCategories)
             .ToListAsync();
 
@@ -65,8 +68,9 @@ public class ProductsService : IProductsService
 
     public async Task<IPaginatedList<ProductModel>> SearchByTitleAsync(string title, PageModel pageModel)
     {
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
         var searchTextToLower = title.Trim().ToLower();
-        var products = await _databaseContext.Products
+        var products = await databaseContext.Products
             .AsNoTracking()
             .Include(x => x.Category)
             .Include(x => x.Manufacturer)
@@ -80,21 +84,23 @@ public class ProductsService : IProductsService
 
     public async Task CreateAsync(CreateProductModel createProductModel)
     {
-        var category = await _databaseContext.Categories.FindAsync(createProductModel.CategoryId) ??
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var category = await databaseContext.Categories.FindAsync(createProductModel.CategoryId) ??
                        throw new EntityFindException();
 
-        var manufacturer = await _databaseContext.Manufacturers.FindAsync(createProductModel.ManufacturerId) ??
+        var manufacturer = await databaseContext.Manufacturers.FindAsync(createProductModel.ManufacturerId) ??
                            throw new EntityFindException();
 
         var product = _mapper.Map<Product>(createProductModel);
 
-        await _databaseContext.AddAsync(product);
-        await _databaseContext.SaveChangesAsync();
+        await databaseContext.AddAsync(product);
+        await databaseContext.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Guid id, UpdateProductModel updateProductModel)
     {
-        var product = await _databaseContext.Products.FindAsync(id);
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var product = await databaseContext.Products.FindAsync(id);
         if (product is null)
         {
             throw new EntityFindException();
@@ -102,13 +108,13 @@ public class ProductsService : IProductsService
 
         if (updateProductModel.CategoryId != product.CategoryId)
         {
-            var _ = await _databaseContext.Categories.FindAsync(updateProductModel.CategoryId) ??
+            var _ = await databaseContext.Categories.FindAsync(updateProductModel.CategoryId) ??
                     throw new EntityFindException();
         }
 
         if (product.ManufacturerId != updateProductModel.ManufacturerId)
         {
-            var _ = await _databaseContext.Manufacturers.FindAsync(updateProductModel.ManufacturerId) ??
+            var _ = await databaseContext.Manufacturers.FindAsync(updateProductModel.ManufacturerId) ??
                     throw new EntityFindException();
         }
 
@@ -120,10 +126,10 @@ public class ProductsService : IProductsService
                 ProductId = product.Id
             };
 
-            await _databaseContext.ProductPriceHistories.AddAsync(priceHistory);
+            await databaseContext.ProductPriceHistories.AddAsync(priceHistory);
         }
 
         _mapper.Map(updateProductModel, product);
-        await _databaseContext.SaveChangesAsync();
+        await databaseContext.SaveChangesAsync();
     }
 }

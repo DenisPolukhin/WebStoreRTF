@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using WebStore.Database.Models;
 using WebStore.Database.Models.Enums;
 using WebStore.Logic.Interfaces;
@@ -12,11 +13,11 @@ namespace WebStore.Logic.Services;
 public class PaymentsService : IPaymentsService
 {
     private readonly AsyncClient _client;
-    private readonly DatabaseContext _databaseContext;
+    private readonly IDbContextFactory<DatabaseContext> _dbContextFactory;
 
-    public PaymentsService(DatabaseContext databaseContext, IConfiguration configuration)
+    public PaymentsService(IDbContextFactory<DatabaseContext> dbContextFactory, IConfiguration configuration)
     {
-        _databaseContext = databaseContext;
+        _dbContextFactory = dbContextFactory;
         var yookassaConfig = configuration.GetSection(nameof(YookassaConfig))
             .Get<YookassaConfig>();
         _client = new Client(yookassaConfig.ShopId, yookassaConfig.SecretKey).MakeAsync();
@@ -24,6 +25,7 @@ public class PaymentsService : IPaymentsService
 
     public async Task<(string, Guid)> CreatePaidOrderUrl(PaymentModel paymentModel)
     {
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
         var newPayment = new NewPayment
         {
             Amount = new Amount
@@ -68,8 +70,8 @@ public class PaymentsService : IPaymentsService
             State = PaymentState.Pending,
             OrderId = paymentModel.OrderId
         };
-        await _databaseContext.Payments.AddAsync(payment);
-        await _databaseContext.SaveChangesAsync();
+        await databaseContext.Payments.AddAsync(payment);
+        await databaseContext.SaveChangesAsync();
 
         return (yookassaPayment.Confirmation.ConfirmationUrl, payment.Id);
     }

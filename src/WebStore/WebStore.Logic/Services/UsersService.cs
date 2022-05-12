@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using WebStore.Common.Models;
 using WebStore.Database.Models;
@@ -12,15 +13,15 @@ namespace WebStore.Logic.Services;
 
 public class UsersService : IUsersService
 {
-    private readonly DatabaseContext _databaseContext;
+    private readonly IDbContextFactory<DatabaseContext> _dbContextFactory;
     private readonly IJwtService _jwtService;
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
 
-    public UsersService(DatabaseContext databaseContext, IJwtService jwtService, UserManager<User> userManager,
+    public UsersService(IDbContextFactory<DatabaseContext> dbContextFactory, IJwtService jwtService, UserManager<User> userManager,
         SignInManager<User> signInManager)
     {
-        _databaseContext = databaseContext;
+        _dbContextFactory = dbContextFactory;
         _jwtService = jwtService;
         _userManager = userManager;
         _signInManager = signInManager;
@@ -28,6 +29,7 @@ public class UsersService : IUsersService
 
     public async Task<LogInResultModel> LogInAsync(LogInModel logInModel)
     {
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
         const string InvalidLoginOrPasswordMessage = "You entered an incorrect username or password!";
 
         var user = await _userManager.FindByEmailAsync(logInModel.Email);
@@ -43,7 +45,7 @@ public class UsersService : IUsersService
         }
 
         user.LastSeenAt = SystemClock.Instance.GetCurrentInstant();
-        await _databaseContext.SaveChangesAsync();
+        await databaseContext.SaveChangesAsync();
 
         return await GenerateSuccessfulLogInResultModelAsync(user);
     }

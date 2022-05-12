@@ -10,18 +10,19 @@ namespace WebStore.Logic.Services;
 
 public class UsersProfileService : IUsersProfileService
 {
-    private readonly DatabaseContext _databaseContext;
+    private readonly IDbContextFactory<DatabaseContext> _dbContextFactory;
     private readonly IMapper _mapper;
 
-    public UsersProfileService(DatabaseContext databaseContext, IMapper mapper)
+    public UsersProfileService(IDbContextFactory<DatabaseContext> dbContextFactory, IMapper mapper)
     {
-        _databaseContext = databaseContext;
+        _dbContextFactory = dbContextFactory;
         _mapper = mapper;
     }
 
     public async Task<UserModel> GetDetailsAsync(Guid id)
     {
-        var user = await _databaseContext.Users
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var user = await databaseContext.Users
             .Include(x => x.City)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (user is null)
@@ -34,7 +35,8 @@ public class UsersProfileService : IUsersProfileService
 
     public async Task<ResultModel> UpdateAsync(Guid id, UpdateProfileModel updateProfileModel)
     {
-        var user = await _databaseContext.Users.FindAsync(id);
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var user = await databaseContext.Users.FindAsync(id);
         if (user is null)
         {
             throw new EntityFindException();
@@ -42,12 +44,12 @@ public class UsersProfileService : IUsersProfileService
 
         if (updateProfileModel.CityId is not null && updateProfileModel.CityId != user.CityId)
         {
-            var _ = await _databaseContext.Cities.FindAsync(updateProfileModel.CityId) ??
+            var _ = await databaseContext.Cities.FindAsync(updateProfileModel.CityId) ??
                     throw new EntityFindException();
         }
 
         _mapper.Map(updateProfileModel, user);
-        await _databaseContext.SaveChangesAsync();
+        await databaseContext.SaveChangesAsync();
 
         return new ResultModel(true, "Data updated successfully!");
     }

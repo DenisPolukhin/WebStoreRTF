@@ -11,18 +11,18 @@ namespace WebStore.Logic.Services;
 
 public class OrdersService : IOrdersService
 {
-    private readonly DatabaseContext _databaseContext;
     private readonly IPaymentsService _paymentsService;
-
-    public OrdersService(DatabaseContext databaseContext, IPaymentsService paymentsService)
+    private readonly IDbContextFactory<DatabaseContext> _dbContextFactory;
+    public OrdersService(IDbContextFactory<DatabaseContext> dbContextFactory, IPaymentsService paymentsService)
     {
-        _databaseContext = databaseContext;
+        _dbContextFactory = dbContextFactory;
         _paymentsService = paymentsService;
     }
 
     public async Task<(Guid, string)> CreateOrderAsync(Guid userId, CreateOrderModel createOrderModel)
     {
-        var user = await _databaseContext.Users.FindAsync(userId);
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var user = await databaseContext.Users.FindAsync(userId);
         if (user is null)
         {
             throw new EntityFindException();
@@ -36,7 +36,7 @@ public class OrdersService : IOrdersService
             throw new InvalidOperationException();
         }
 
-        var products = await _databaseContext.Products
+        var products = await databaseContext.Products
             .Where(p => uniqueProductsId.Contains(p.Id))
             .ToListAsync();
         if (products.Count != uniqueProductsId.Count)
@@ -57,7 +57,7 @@ public class OrdersService : IOrdersService
             ProductsInOrder = productsInOrder
         };
 
-        await _databaseContext.Orders.AddAsync(order);
+        await databaseContext.Orders.AddAsync(order);
 
         var paymentModel = new PaymentModel
         {
@@ -76,14 +76,15 @@ public class OrdersService : IOrdersService
         };
 
         var (paymentUrl, paymentId) = await _paymentsService.CreatePaidOrderUrl(paymentModel);
-        await _databaseContext.SaveChangesAsync();
+        await databaseContext.SaveChangesAsync();
 
         return (order.Id, paymentUrl);
     }
 
     public async Task<IEnumerable<OrderModel>> GetOrdersAsync(Guid userId)
     {
-        var orders = await _databaseContext.Orders
+        var databaseContext = await _dbContextFactory.CreateDbContextAsync();
+        var orders = await databaseContext.Orders
             .Include(x => x.Payment)
             .Include(x => x.Products)
             .ThenInclude(x => x.Manufacturer)
