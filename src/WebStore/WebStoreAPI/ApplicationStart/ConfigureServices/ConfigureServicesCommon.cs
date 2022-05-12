@@ -15,7 +15,7 @@ public static class ConfigureServicesCommon
             .AddFluentValidation(conf => conf.RegisterValidatorsFromAssemblyContaining(typeof(LogInValidator)));
         services.AddEndpointsApiExplorer();
         services.AddDbContextFactory<DatabaseContext>(options => options.UseNpgsql(configuration
-            .GetConnectionString("DefaultConnection"), op => op.UseNodaTime()), ServiceLifetime.Scoped);
+            .GetConnectionString("DefaultConnection"), op => op.UseNodaTime()));
         services.AddIdentity<User, IdentityRole<Guid>>(options =>
             {
                 options.Password.RequireNonAlphanumeric = true;
