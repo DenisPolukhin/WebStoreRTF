@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace WebStore.Database.Migrations
 {
-    public partial class Initial : Migration
+    public partial class initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -87,6 +87,21 @@ namespace WebStore.Database.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Manufacturers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Payments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<Instant>(type: "timestamp with time zone", nullable: false),
+                    YookassaPaymentId = table.Column<string>(type: "text", nullable: false),
+                    State = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payments", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -278,6 +293,12 @@ namespace WebStore.Database.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Orders_Payments_PaymentId",
+                        column: x => x.PaymentId,
+                        principalTable: "Payments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -296,28 +317,6 @@ namespace WebStore.Database.Migrations
                         name: "FK_ProductPriceHistories_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Payments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CreatedAt = table.Column<Instant>(type: "timestamp with time zone", nullable: false),
-                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
-                    YookassaPaymentId = table.Column<string>(type: "text", nullable: false),
-                    State = table.Column<int>(type: "integer", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Payments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Payments_Orders_OrderId",
-                        column: x => x.OrderId,
-                        principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -395,15 +394,14 @@ namespace WebStore.Database.Migrations
                 column: "ParentCategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Orders_PaymentId",
+                table: "Orders",
+                column: "PaymentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_UserId",
                 table: "Orders",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Payments_OrderId",
-                table: "Payments",
-                column: "OrderId",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductInOrder_ProductId",
@@ -444,9 +442,6 @@ namespace WebStore.Database.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Payments");
-
-            migrationBuilder.DropTable(
                 name: "ProductInOrder");
 
             migrationBuilder.DropTable(
@@ -463,6 +458,9 @@ namespace WebStore.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Payments");
 
             migrationBuilder.DropTable(
                 name: "Categories");

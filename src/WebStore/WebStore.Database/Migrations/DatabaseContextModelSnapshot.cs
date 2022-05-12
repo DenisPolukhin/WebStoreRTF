@@ -300,6 +300,8 @@ namespace WebStore.Database.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PaymentId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Orders");
@@ -317,9 +319,6 @@ namespace WebStore.Database.Migrations
                     b.Property<Instant>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("State")
                         .HasColumnType("integer");
 
@@ -328,9 +327,6 @@ namespace WebStore.Database.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("OrderId")
-                        .IsUnique();
 
                     b.ToTable("Payments");
                 });
@@ -557,24 +553,21 @@ namespace WebStore.Database.Migrations
 
             modelBuilder.Entity("WebStore.Database.Models.Entities.Order", b =>
                 {
+                    b.HasOne("WebStore.Database.Models.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("WebStore.Database.Models.Entities.User", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Payment");
+
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("WebStore.Database.Models.Entities.Payment", b =>
-                {
-                    b.HasOne("WebStore.Database.Models.Entities.Order", "Order")
-                        .WithOne("Payment")
-                        .HasForeignKey("WebStore.Database.Models.Entities.Payment", "OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("WebStore.Database.Models.Entities.Product", b =>
@@ -649,9 +642,6 @@ namespace WebStore.Database.Migrations
 
             modelBuilder.Entity("WebStore.Database.Models.Entities.Order", b =>
                 {
-                    b.Navigation("Payment")
-                        .IsRequired();
-
                     b.Navigation("ProductsInOrder");
                 });
 

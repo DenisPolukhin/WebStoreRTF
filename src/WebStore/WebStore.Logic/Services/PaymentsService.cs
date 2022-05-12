@@ -68,7 +68,6 @@ public class PaymentsService : IPaymentsService
             YookassaPaymentId = yookassaPayment.Id,
             Amount = yookassaPayment.Amount.Value,
             State = PaymentState.Pending,
-            OrderId = paymentModel.OrderId
         };
         await databaseContext.Payments.AddAsync(payment);
         await databaseContext.SaveChangesAsync();

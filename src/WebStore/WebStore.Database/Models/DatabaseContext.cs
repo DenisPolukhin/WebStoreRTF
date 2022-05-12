@@ -37,10 +37,5 @@ public class DatabaseContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                     .WithMany(o => o.ProductsInOrder)
                     .HasForeignKey(po => po.OrderId));
 
-        builder.Entity<Order>()
-            .HasOne(o => o.Payment)
-            .WithOne(p => p.Order)
-            .HasForeignKey<Payment>(p => p.OrderId);
-
     }
 }

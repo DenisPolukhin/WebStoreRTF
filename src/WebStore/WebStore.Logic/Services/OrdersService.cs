@@ -76,6 +76,7 @@ public class OrdersService : IOrdersService
         };
 
         var (paymentUrl, paymentId) = await _paymentsService.CreatePaidOrderUrl(paymentModel);
+        order.PaymentId = paymentId;
         await databaseContext.SaveChangesAsync();
 
         return (order.Id, paymentUrl);
